@@ -6,12 +6,12 @@ def employee_menu():
     """
     Employee prompt loop.\n
     `add`- adds an employee to the `employee` table\n
-    `update`- updates the record of a specified employee. calls the `view` function which calls the `update` function if `update` param is True.\n
     `view`- view a specified employee, requires employee pkey\n
+    `update`- updates the record of a specified employee. calls the `view` function which calls the `update` function if `update` param is True.\n
     `back`- breaks out of the loop
     """
     while True:
-        choice = input("Choose an option: (add, update, view, back)\n").strip().lower()
+        choice = input("Choose an option: (add, view, update, back)\n").strip().lower()
         if choice == 'add':
             #  gives user the choice of adding a preferred name or not.
             display_wanted  = str.casefold(input("Display Name? (Y/N) - "))
@@ -30,9 +30,9 @@ def employee_menu():
                     pref = primary_key(input("pref. key (1-150)"))
                 #     todo: input validation, pull from database ahead of time to ensure input is not already in
                 else:
-                    pref = primary_key(None, permission_lvl)
+                    pref = primary_key(None, permission_lvl, pkey_type='employee')
             else:
-                pref = primary_key(None, permission_lvl)
+                pref = primary_key(None, permission_lvl, pkey_type='employee')
             email           = str.upper(input("Email Address - "))
             dob             = str.upper(input("DOB (MM-DD-YYYY) - "))
             status_input    = int(input("Employee Status\n(1) active -- (2) inactive -- (3) onboarding -- (4) away"))
@@ -147,7 +147,7 @@ def view_employee(key, update=False):
     Views the employee information of the selected pkey
     :param key: employee pkey
     :param update: boolean value that checks if user would like to update employee info
-    :return:
+    :return: employee info record
     """
     conn = pg_connect()
     if conn is None:
@@ -180,18 +180,24 @@ def view_employee(key, update=False):
         raise
     finally:
         if update is True:
-            update_employee(saved_line, conn)
+            update_employee(saved_line)
         #     calls update_employee function if `update` is True.
         pg_disconnect(conn)
 
 # Todo: create a list view? Pulls pkeys + First + Last names into a single string each, prints these strings out line by line
 
 
-def update_employee(saved_line, conn):
+def update_employee(saved_line):
+    """
+    Updates the info of an employee at a single array value of the record
+    :param saved_line: variable created by view_employee to save the employee record from the DB cursor
+    :param conn: connection variable that calls the .connect method to the DB
+    :return: employee updated info from the DB
+    """
     array_value = int(input("array value (0-9) to be updated\n"))
     # todo: input validation, also cover invalid key case
     print(saved_line[array_value], '--> ', end='')
-    updated_value = str(input())
+    updated_value = str.upper((input()))
     # dynamically updates whichever value is changed
     cols = ('id', 'employee_display', 'employee_first', 'employee_last', 'job_title', 'permission_lvl', 'status', 'last_active', 'email', 'dob')
     set_clause = ", ".join(f"{col} = %s" for col in cols)
@@ -207,9 +213,9 @@ def update_employee(saved_line, conn):
             update_params.append(item)
     print(update_params)
     update_params.append(saved_line[0])
-    with conn.cursor() as cursor:
+    with pg_connect().cursor() as cursor:
         cursor.execute(update_sql, update_params)
-        conn.commit()
+        pg_connect().commit()
     # todo: input validation, also provide feedback when change is valid
 #
 #
