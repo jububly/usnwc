@@ -2,6 +2,10 @@ from employee import employee_menu
 from training import training_menu
 
 def main_menu():
+    """
+    Main menu function, allows a higher order selection of the action the user would like to perform
+    :return: Action type
+    """
     menu_input = '-'
     while menu_input != 'BREAK':
         menu_input = str.upper(input("Choose an option: (training, employee, break)\n"))

@@ -4,10 +4,13 @@ from pg_functions import pg_connect, pg_disconnect
 
 def employee_menu():
     """
-    Main prompt loop.  Breaks when the user types 'back'.
+    Employee prompt loop.\n
+    `add`- adds an employee to the `employee` table\n
+    `update`- updates the record of a specified employee. calls the `view` function which calls the `update` function if `update` param is True.\n
+    `view`- view a specified employee, requires employee pkey\n
+    `back`- breaks out of the loop
     """
     while True:
-
         choice = input("Choose an option: (add, update, view, back)\n").strip().lower()
         if choice == 'add':
             #  gives user the choice of adding a preferred name or not.
@@ -24,7 +27,8 @@ def employee_menu():
                 #  part-time guides all have generated IDs, full-time can input 1-150 if wanted.
                 pref_wanted = str.casefold(input("preferred key? (Y/N)"))
                 if pref_wanted == 'y':
-                    pref = primary_key(input("pref. key"))
+                    pref = primary_key(input("pref. key (1-150)"))
+                #     todo: input validation, pull from database ahead of time to ensure input is not already in
                 else:
                     pref = primary_key(None, permission_lvl)
             else:
@@ -60,7 +64,6 @@ def employee_menu():
         elif choice == 'update':
             key = int(input("Employee ID to update: "))
             view_employee(key, True)
-
 
 
         elif choice == 'view':
@@ -100,6 +103,16 @@ def add_employee(
 ):
     """
     Opens one connection, inserts one row, commits, then closes.
+    :param pkey: employee pkey generated in `primary_key_generator.py`
+    :param display_name: preferred display name of employee, returns `None` if not initialized
+    :param first_name: employee first name, should be one word only
+    :param last_name: employee last name(s), if 3+ words in name this will include the rest of the words.
+    :param job_title: employee job title
+    :param permission_lvl: employee permission_lvl. 1 is PT, 2+ FT
+    :param email: employee email name
+    :param dob: employee date of birth
+    :param status: employee employment status
+    :return: feedback string
     """
     conn = pg_connect()
     if conn is None:
@@ -130,6 +143,12 @@ def add_employee(
 
 
 def view_employee(key, update=False):
+    """
+    Views the employee information of the selected pkey
+    :param key: employee pkey
+    :param update: boolean value that checks if user would like to update employee info
+    :return:
+    """
     conn = pg_connect()
     if conn is None:
         raise RuntimeError("Could not connect to database")
@@ -161,39 +180,37 @@ def view_employee(key, update=False):
         raise
     finally:
         if update is True:
-            array_value = int(input("array value (0-9) to be updated\n"))
-            # todo: input validation, also cover invalid key case
-            print(saved_line[array_value], '--> ', end='')
-            updated_value = str(input())
-            # dynamically updates whichever value is changed
-            cols = ('id', 'employee_display', 'employee_first', 'employee_last', 'job_title', 'permission_lvl', 'status', 'last_active', 'email', 'dob')
-            set_clause = ", ".join(f"{col} = %s" for col in cols)
-            update_sql = f"""
-            UPDATE employee
-            set {set_clause}
-            where id = %s"""
-            update_params = []
-            for value, item in enumerate(saved_line):
-                if value == array_value:
-                    update_params.append(updated_value)
-                else:
-                    update_params.append(item)
-            print(update_params)
-            update_params.append(saved_line[0])
-            with conn.cursor() as cursor:
-                cursor.execute(update_sql, update_params)
-                conn.commit()
-            # todo: input validation, also provide feedback when change is valid
+            update_employee(saved_line, conn)
+        #     calls update_employee function if `update` is True.
         pg_disconnect(conn)
 
 # Todo: create a list view? Pulls pkeys + First + Last names into a single string each, prints these strings out line by line
 
-def update_employee(key, array_value, status='active'):
-    pass
-#       todo: integrate DB, this function should integrate with DB and change status of employees
-#       consider changing function name, this will change the status of the employee by default
-#       this can largely use the view_employee code, with an added layer on top that asks the user
-#       which array value they want to update, followed by a prompt that pulls the necessary data
-#       data type and allows for input. Maybe combine this and view_employee?
-#       instead of combining these, make view_employee call update_employee if the user would like
-#       to update the array values of an entry.
+
+def update_employee(saved_line, conn):
+    array_value = int(input("array value (0-9) to be updated\n"))
+    # todo: input validation, also cover invalid key case
+    print(saved_line[array_value], '--> ', end='')
+    updated_value = str(input())
+    # dynamically updates whichever value is changed
+    cols = ('id', 'employee_display', 'employee_first', 'employee_last', 'job_title', 'permission_lvl', 'status', 'last_active', 'email', 'dob')
+    set_clause = ", ".join(f"{col} = %s" for col in cols)
+    update_sql = f"""
+            UPDATE employee
+            set {set_clause}
+            where id = %s"""
+    update_params = []
+    for value, item in enumerate(saved_line):
+        if value == array_value:
+            update_params.append(updated_value)
+        else:
+            update_params.append(item)
+    print(update_params)
+    update_params.append(saved_line[0])
+    with conn.cursor() as cursor:
+        cursor.execute(update_sql, update_params)
+        conn.commit()
+    # todo: input validation, also provide feedback when change is valid
+#
+#
+#   view_employee calls update_employee if the user would like to update the array values of an entry.
