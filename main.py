@@ -1,16 +1,16 @@
 from employee import employee_menu
 from training import training_menu
 
-
-# todo: make menus return to main_menu if 'back' is inputted.
 def main_menu():
-    menu_input = str.upper(input("Choose an option: (training, employee, break)"))
-    if menu_input == "TRAINING":
-        training_menu()
-    elif menu_input == "EMPLOYEE":
-        employee_menu()
-    else:
-        pass
+    menu_input = '-'
+    while menu_input != 'BREAK':
+        menu_input = str.upper(input("Choose an option: (training, employee, break)\n"))
+        if menu_input == "TRAINING":
+            training_menu()
+        elif menu_input == "EMPLOYEE":
+            employee_menu()
+    print("Exiting.")
+
 
 main_menu()
 
